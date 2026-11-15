@@ -12,5 +12,6 @@ RUN CGO_ENABLED=0 go build -ldflags "-s -w -X main.version=${VERSION}" -o /app .
 FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=build /app /app
 EXPOSE 8080
-USER nonroot:nonroot
+# numeric UID so Kubernetes runAsNonRoot can verify it (65532 = distroless "nonroot")
+USER 65532:65532
 ENTRYPOINT ["/app"]

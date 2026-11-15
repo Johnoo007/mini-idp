@@ -26,3 +26,17 @@ Measured with `docker images` (Docker 29.3, linux/arm64):
 | `Dockerfile` (multi-stage) | `distroless/static` (nonroot) | 14 MB |
 
 ~99% smaller. The final image has no shell or package manager and runs as a non-root user.
+
+## Local Kubernetes (kind)
+```bash
+./scripts/bootstrap.sh   # create kind cluster, build + load image, deploy, smoke test
+./scripts/teardown.sh    # delete the cluster
+```
+From an empty machine state (node image already cached) `bootstrap.sh` takes ~36 s.
+
+- 2 replicas, liveness probe `/healthz`, readiness probe `/readyz`
+- CPU/memory requests and limits
+- non-root (UID 65532), read-only root filesystem, all Linux capabilities dropped
+
+Problem hit on the way: the pod failed with `CreateContainerConfigError`
+(`runAsNonRoot` cannot verify a non-numeric user). Fixed by using a numeric `USER 65532:65532` in the Dockerfile.
