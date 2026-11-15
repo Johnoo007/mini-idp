@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# One command: create a local kind cluster and deploy mini-idp.
+# One command: create a local kind cluster and deploy mini-idp (local build, no Argo CD).
+# For the GitOps setup use scripts/gitops.sh instead.
 # Usage: ./scripts/bootstrap.sh
 set -euo pipefail
 
@@ -34,8 +35,9 @@ kind load docker-image "$IMAGE" --name "$CLUSTER"
 log "applying manifests"
 EXISTED=false
 kubectl -n mini-idp get deployment mini-idp >/dev/null 2>&1 && EXISTED=true
-kubectl apply -f "$ROOT/k8s/namespace.yaml"
-kubectl apply -f "$ROOT/k8s/"
+kubectl apply -k "$ROOT/k8s/"
+# local mode: use the image we just built instead of the GHCR one
+kubectl -n mini-idp set image deployment/mini-idp mini-idp="$IMAGE" >/dev/null
 # same tag, new image: restart so pods pick it up (not needed on first deploy)
 if [ "$EXISTED" = true ]; then
   kubectl -n mini-idp rollout restart deployment/mini-idp >/dev/null

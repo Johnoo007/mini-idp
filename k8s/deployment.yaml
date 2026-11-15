@@ -19,7 +19,7 @@ spec:
         runAsNonRoot: true
       containers:
         - name: mini-idp
-          image: mini-idp:local   # bootstrap.sh builds this and loads it into kind
+          image: mini-idp   # real image + tag come from kustomization.yaml
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080

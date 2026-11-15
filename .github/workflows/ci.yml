@@ -3,6 +3,7 @@ name: ci
 on:
   push:
     branches: [main]
+    paths-ignore: ["k8s/kustomization.yaml"]   # tag bumps from CI itself
   pull_request:
 
 permissions:
@@ -59,9 +60,34 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Push image
+      # amd64 for servers, arm64 so it also runs on Apple-silicon kind clusters
+      - name: Push image (amd64 + arm64)
         if: github.ref == 'refs/heads/main'
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:latest
+          build-args: VERSION=${{ github.sha }}
+
+  # GitOps: write the new image tag into k8s/kustomization.yaml.
+  # Argo CD watches that file and rolls the cluster forward.
+  update-manifest:
+    needs: build-scan-push
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Bump image tag
         run: |
-          docker tag $IMAGE:${{ github.sha }} $IMAGE:latest
-          docker push $IMAGE:${{ github.sha }}
-          docker push $IMAGE:latest
+          sed -i "s/^\(\s*newTag:\).*/\1 ${GITHUB_SHA}/" k8s/kustomization.yaml
+          git diff --stat
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "deploy: mini-idp ${GITHUB_SHA::7}" || echo "nothing to change"
+          git push
