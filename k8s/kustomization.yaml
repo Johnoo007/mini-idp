@@ -8,4 +8,4 @@ images:
   - name: mini-idp
     newName: ghcr.io/johnoo007/mini-idp
     # newTag is updated by CI on every push to main
-    newTag: bebde98d96b0aa5aeec4a073867fdfed21878cfa
+    newTag: f772b141018d2c0f413fc2f2402885570643783d
