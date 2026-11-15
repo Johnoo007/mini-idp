@@ -1,0 +1,7 @@
+# "before": one stage, ships the whole Go toolchain
+FROM golang:1.26
+WORKDIR /src
+COPY . .
+RUN go build -o /app .
+EXPOSE 8080
+CMD ["/app"]
