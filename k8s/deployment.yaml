@@ -33,7 +33,7 @@ spec:
           # only send traffic once it is ready
           readinessProbe:
             httpGet:
-              path: /broken
+              path: /readyz
               port: 8080
             periodSeconds: 5
           resources:
