@@ -3,7 +3,8 @@ name: ci
 on:
   push:
     branches: [main]
-    paths-ignore: ["k8s/kustomization.yaml"]   # tag bumps from CI itself
+    # manifest-only changes need no new image; Argo CD deploys them directly
+    paths-ignore: ["k8s/**", "argocd/**", "**.md"]
   pull_request:
 
 permissions:
