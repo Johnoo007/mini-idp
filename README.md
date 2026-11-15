@@ -40,3 +40,23 @@ From an empty machine state (node image already cached) `bootstrap.sh` takes ~36
 
 Problem hit on the way: the pod failed with `CreateContainerConfigError`
 (`runAsNonRoot` cannot verify a non-numeric user). Fixed by using a numeric `USER 65532:65532` in the Dockerfile.
+
+## GitOps with Argo CD
+```bash
+./scripts/gitops.sh   # kind + Argo CD v3.6.1 + the mini-idp Application
+```
+Flow: push to `main` → CI tests, builds a multi-arch image (amd64 + arm64), scans it with Trivy, pushes to GHCR →
+CI writes the new tag into `k8s/kustomization.yaml` → Argo CD sees the commit and syncs the cluster.
+Changes under `k8s/` skip CI and are deployed by Argo CD directly.
+
+Auto-sync is on with `prune` and `selfHeal`.
+
+### Tests (kind on Apple silicon, Nov 2026)
+| Test | Result |
+|---|---|
+| Self-heal: `kubectl scale --replicas=5` by hand | Argo CD put it back to 2 replicas in ~1 s |
+| Bad release: readiness probe pointed at a missing path | new pod never became Ready, rollout paused, the 2 old pods kept serving: **0 failed of 1,218 requests** |
+| Rollback: `git revert` of the bad commit, pushed | back to Synced/Healthy with 2/2 ready in ~2 s, 0 failed requests |
+
+Timings use a manual refresh (`argocd.argoproj.io/refresh` annotation), which is what a Git webhook does.
+Without a webhook Argo CD polls Git every 3 minutes by default.
